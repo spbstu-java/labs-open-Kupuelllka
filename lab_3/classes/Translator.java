@@ -1,6 +1,5 @@
 package lab_3.classes;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 
