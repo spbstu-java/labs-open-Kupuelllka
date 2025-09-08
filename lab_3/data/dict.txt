@@ -18,3 +18,10 @@ university | университет
 work | работа
 home | домой
 time | время
+look | смотреть
+look forward | ожидать
+look at | посмотреть на
+dog | собака
+window | окно
+the | 
+to | 
