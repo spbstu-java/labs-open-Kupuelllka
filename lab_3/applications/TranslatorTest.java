@@ -1,45 +1,26 @@
 package lab_3.applications;
-    
-import java.io.IOException;
+
 import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import lab_3.classes.AppLogger;
+import lab_3.classes.Exceptions;
 import lab_3.classes.Translator;
 
 public class TranslatorTest {
+    public static void main(String[] args) {
+        Translator translator = new Translator("../data/dict.txt");
 
-        private static final Logger logger = Logger.getLogger(TranslatorTest.class.getName());
-    
-        public static void main(String[] args) {
-            // Путь к файлу словаря
-            String dictionaryPath = "lab_3/data/dict.txt";
+        try {
+            translator.loadDictionary();
+            System.out.println("Словарь загружен успешно. Записей: " + translator.getDictionarySize());
+            translator.startInteractiveMode();
             
-            logger.info("Запуск приложения Переводчик");
-            
-            try {
-                // Создаем и запускаем переводчик
-                Translator translator = new Translator(dictionaryPath);
-                
-                // Загружаем словарь
-                translator.loadDictionary();
-                
-                logger.info("Словарь успешно загружен, запуск интерактивного режима");
-                
-                // Запускаем интерактивный режим
-                translator.startInteractiveMode();
-                
-                logger.info("Приложение успешно завершено");
-                
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, "Критическая ошибка при загрузке словаря", e);
-                System.err.println("Ошибка при загрузке словаря: " + e.getMessage());
-                System.err.println("Убедитесь, что файл " + dictionaryPath + " существует и имеет правильный формат");
-                System.exit(1);
-                
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Неожиданная ошибка в приложении", e);
-                System.err.println("Неожиданная ошибка: " + e.getMessage());
-                e.printStackTrace();
-                System.exit(1);
-            }
+        } catch (Exceptions.DictionaryLoadException e) {
+            System.err.println("Ошибка загрузки словаря: " + e.getMessage());
+            AppLogger.log(Level.SEVERE, "Ошибка загрузки словаря", e);
+        } catch (Exception e) {
+            System.err.println("Неожиданная ошибка: " + e.getMessage());
+            AppLogger.log(Level.SEVERE, "Неожиданная ошибка", e);
         }
+    }
 }

@@ -1,115 +1,101 @@
 package lab_3.classes;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Translator {
-    private static final Logger logger = Logger.getLogger(Translator.class.getName());
     private final String dictionaryPath;
+    private final DictionaryFileReader dictionaryReader;
     private Map<String, String> dictionary;
-    private List<String> sortedKeys; // Ключи, отсортированные по длине (от большего к меньшему)
+    private List<String> sortedKeys;
 
     public Translator(String dictionaryPath) {
         this.dictionaryPath = dictionaryPath;
-        logger.info("Создан Translator для словаря: " + dictionaryPath);
+        this.dictionaryReader = new DictionaryFileReader(dictionaryPath);
+        AppLogger.info("Создан Translator для словаря: " + dictionaryPath);
     }
 
     /**
      * Загрузка словаря из файла и подготовка данных для перевода
      */
-    public void loadDictionary() throws IOException {
-        logger.info("Начало загрузки словаря из файла: " + dictionaryPath);
+    public void loadDictionary() throws Exceptions.DictionaryLoadException {
+        AppLogger.info("Начало загрузки словаря из файла: " + dictionaryPath);
         
         try {
-            dictionary = new HashMap<>();
-            List<String> lines = Files.readAllLines(Paths.get(dictionaryPath));
-            
-            for (String line : lines) {
-                if (line.trim().isEmpty() || !line.contains("|")) {
-                    continue;
-                }
-                
-                String[] parts = line.split("\\|", 2);
-                if (parts.length == 2) {
-                    String key = parts[0].trim().toLowerCase();
-                    String value = parts[1].trim();
-                    dictionary.put(key, value);
-                }
-            }
+            dictionary = dictionaryReader.readDictionary();
             
             // Сортируем ключи по длине (от большего к меньшему) для greedy matching
             sortedKeys = new ArrayList<>(dictionary.keySet());
             sortedKeys.sort((a, b) -> Integer.compare(b.length(), a.length()));
             
-            logger.info("Словарь успешно загружен. Записей: " + dictionary.size());
-            logger.fine("Ключи отсортированы по длине для greedy matching");
+            AppLogger.info("Словарь успешно загружен. Записей: " + dictionary.size());
+            AppLogger.fine("Ключи отсортированы по длине для greedy matching");
             
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Ошибка при загрузке словаря из файла: " + dictionaryPath, e);
-            throw new IOException("Ошибка загрузки словаря: " + e.getMessage(), e);
+        } catch (Exceptions.DictionaryLoadException e) {
+            AppLogger.log(Level.SEVERE, "Ошибка при загрузке словаря из файла: " + dictionaryPath, e);
+            throw new Exceptions.DictionaryLoadException("Ошибка загрузки словаря: " + e.getMessage(), e);
         }
     }
 
     /**
      * Перевод текста с использованием greedy matching
      */
-    public String translateText(String text) {
-        logger.info("Начало перевода текста: '" + text + "'");
+    public String translateText(String text) throws Exceptions.TranslationException {
+        AppLogger.info("Начало перевода текста: '" + text + "'");
         
         if (text == null) {
-            logger.warning("Передан null вместо текста для перевода");
-            throw new IllegalArgumentException("Текст не может быть null");
+            AppLogger.warning("Передан null вместо текста для перевода");
+            throw new Exceptions.InvalidInputException("Текст не может быть null");
         }
         
         if (text.trim().isEmpty()) {
-            logger.warning("Передан пустой текст для перевода");
+            AppLogger.warning("Передан пустой текст для перевода");
             return "Введен пустой текст";
         }
 
         if (dictionary == null || dictionary.isEmpty()) {
-            logger.severe("Словарь не загружен или пуст");
-            throw new IllegalStateException("Словарь не загружен. Вызовите loadDictionary() сначала");
+            AppLogger.severe("Словарь не загружен или пуст");
+            throw new Exceptions.TranslationException("Словарь не загружен. Вызовите loadDictionary() сначала");
         }
 
-        String[] words = text.split("\\s+");
-        StringBuilder result = new StringBuilder();
-        int i = 0;
+        try {
+            String[] words = text.split("\\s+");
+            StringBuilder result = new StringBuilder();
+            int i = 0;
 
-        while (i < words.length) {
-            String longestMatch = findLongestMatch(words, i);
-            
-            if (longestMatch != null) {
-                // Найдено совпадение в словаре
-                String translation = dictionary.get(longestMatch.toLowerCase());
-                result.append(translation).append(" ");
-                i += longestMatch.split("\\s+").length; // Пропускаем все слова совпадения
-                logger.fine("Найдено совпадение: '" + longestMatch + "' -> '" + translation + "'");
-            } else {
-                // Совпадение не найдено, добавляем оригинальное слово
-                result.append(words[i]).append(" ");
-                i++;
-                logger.fine("Совпадение не найдено для слова: '" + words[i-1] + "'");
+            while (i < words.length) {
+                String longestMatch = findLongestMatch(words, i);
+                
+                if (longestMatch != null) {
+                    String translation = dictionary.get(longestMatch.toLowerCase());
+                    result.append(translation).append(" ");
+                    i += longestMatch.split("\\s+").length;
+                    AppLogger.fine("Найдено совпадение: '" + longestMatch + "' -> '" + translation + "'");
+                } else {
+                    result.append(words[i]).append(" ");
+                    i++;
+                    AppLogger.fine("Совпадение не найдено для слова: '" + words[i-1] + "'");
+                }
             }
-        }
 
-        logger.info("Перевод завершен: '" + text + "' -> '" + result.toString().trim() + "'");
-        return result.toString().trim();
+            AppLogger.info("Перевод завершен: '" + text + "' -> '" + result.toString().trim() + "'");
+            return result.toString().trim();
+            
+        } catch (Exception e) {
+            AppLogger.log(Level.SEVERE, "Ошибка при переводе текста: " + text, e);
+            throw new Exceptions.TranslationException("Ошибка перевода: " + e.getMessage(), e);
+        }
     }
 
     /**
-     * Поиск самого длинного совпадения начиная с позиции startIndex
-     * Использует greedy matching для выбора варианта с максимальной длиной
+     * Поиск самого длинного совпадения
      */
     private String findLongestMatch(String[] words, int startIndex) {
         if (startIndex >= words.length) {
             return null;
         }
 
-        // Собираем возможные фразы начиная с startIndex
         StringBuilder currentPhrase = new StringBuilder();
         String bestMatch = null;
 
@@ -121,9 +107,7 @@ public class Translator {
             
             String currentPhraseStr = currentPhrase.toString().toLowerCase();
             
-            // Проверяем, есть ли текущая фраза в словаре
             if (dictionary.containsKey(currentPhraseStr)) {
-                // Нашли совпадение, сохраняем как лучшее (самое длинное)
                 bestMatch = currentPhrase.toString();
             }
         }
@@ -135,10 +119,10 @@ public class Translator {
      * Запуск интерактивного режима перевода
      */
     public void startInteractiveMode() {
-        logger.info("Запуск интерактивного режима перевода");
+        AppLogger.info("Запуск интерактивного режима перевода");
         
         if (dictionary == null) {
-            logger.severe("Попытка запуска интерактивного режима без загруженного словаря");
+            AppLogger.severe("Попытка запуска интерактивного режима без загруженного словаря");
             System.err.println("Ошибка: словарь не загружен");
             return;
         }
@@ -160,7 +144,7 @@ public class Translator {
                 String input = scanner.nextLine().trim();
 
                 if (input.equalsIgnoreCase("выход") || input.equalsIgnoreCase("exit")) {
-                    logger.info("Пользователь завершил работу переводчика");
+                    AppLogger.info("Пользователь завершил работу переводчика");
                     System.out.println("Завершение работы переводчика...");
                     break;
                 }
@@ -174,36 +158,31 @@ public class Translator {
                     System.out.println("Перевод: " + translation);
                     System.out.println("---");
                     
-                } catch (IllegalArgumentException e) {
-                    System.out.println("Ошибка: " + e.getMessage());
-                    logger.warning("Ошибка ввода пользователя: " + e.getMessage());
+                } catch (Exceptions.InvalidInputException e) {
+                    System.out.println("Ошибка ввода: " + e.getMessage());
+                    AppLogger.warning("Ошибка ввода пользователя: " + e.getMessage());
+                    
+                } catch (Exceptions.TranslationException e) {
+                    System.out.println("Ошибка перевода: " + e.getMessage());
+                    AppLogger.log(Level.SEVERE, "Ошибка при переводе текста: " + input, e);
                     
                 } catch (Exception e) {
-                    System.out.println("Неожиданная ошибка при переводе: " + e.getMessage());
-                    logger.log(Level.SEVERE, "Неожиданная ошибка при переводе текста: " + input, e);
+                    System.out.println("Неожиданная ошибка при переводе");
+                    AppLogger.log(Level.SEVERE, "Неожиданная ошибка при переводе текста: " + input, e);
                 }
             }
             
         } finally {
             scanner.close();
-            logger.info("Интерактивный режим завершен");
+            AppLogger.info("Интерактивный режим завершен");
         }
-    }
-    
-    /**
-     * Получение статистики словаря
-     */
-    public int getDictionarySize() {
-        if (dictionary == null) {
-            logger.warning("Попытка получить размер не загруженного словаря");
-            return 0;
-        }
-        return dictionary.size();
     }
 
-    /**
-     * Проверка загрузки словаря
-     */
+
+    public int getDictionarySize() {
+        return dictionary != null ? dictionary.size() : 0;
+    }
+
     public boolean isDictionaryLoaded() {
         return dictionary != null && !dictionary.isEmpty();
     }
