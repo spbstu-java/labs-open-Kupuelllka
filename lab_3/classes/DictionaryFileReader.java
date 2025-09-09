@@ -21,6 +21,7 @@ public class DictionaryFileReader {
     private void checkFileExists() throws Exceptions.DictionaryFileException {
         File file = new File(filePath);
         if (!file.exists()) {
+            AppLogger.info("Ищем файл по пути: " + file.getAbsolutePath());
             String errorMsg = "Файл не найден: " + filePath;
             AppLogger.severe(errorMsg);
             throw new Exceptions.DictionaryFileException(errorMsg);
@@ -111,7 +112,10 @@ public class DictionaryFileReader {
         dictionary.put(word, translation);
         AppLogger.fine("Добавлена запись: '" + word + "' -> '" + translation + "'");
     }
-
+    
+    /**
+     * Поиск перевода для слова
+     */
     public String readWordTranslation(String word) throws Exceptions.DictionaryLoadException, Exceptions.TranslationException {
         AppLogger.info("Поиск перевода для слова: '" + word + "'");
         
@@ -133,6 +137,10 @@ public class DictionaryFileReader {
         AppLogger.info("Найден перевод для '" + searchWord + "': '" + translation + "'");
         return translation;
     }
+
+    /**
+     * Проверка существования слова
+     */
 
     public boolean wordExists(String word) throws Exceptions.DictionaryLoadException {
         AppLogger.info("Проверка существования слова: '" + word + "'");

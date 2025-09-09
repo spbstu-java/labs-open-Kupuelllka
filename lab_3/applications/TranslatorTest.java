@@ -8,7 +8,8 @@ import lab_3.classes.Translator;
 
 public class TranslatorTest {
     public static void main(String[] args) {
-        Translator translator = new Translator("../data/dict.txt");
+        
+        Translator translator = new Translator("lab_3/data/dict.txt");
 
         try {
             translator.loadDictionary();
