@@ -86,6 +86,7 @@ jobs:
         find lab_1/ -name "*.java" -exec cp --parents {} src/main/java/ \; 2>/dev/null || true
         find lab_2/ -name "*.java" -exec cp --parents {} src/main/java/ \; 2>/dev/null || true
         find lab_3/ -name "*.java" -exec cp --parents {} src/main/java/ \; 2>/dev/null || true
+        find lab_4/ -name "*.java" -exec cp --parents {} src/main/java/ \; 2>/dev/null || true
         
         # Копируем файлы данных
         mkdir -p src/main/resources
